@@ -13,12 +13,12 @@ This framework prioritizes epistemic agency and data privacy. It was designed to
 
 **Requirements:**
 * Python 3.10+
-* Local installation of [Ollama](https://ollama.com/) running a Gemma variant. 
+* Local installation of [Ollama](https://ollama.com/) running the custom Gemma variant. 
 
 **Run Instructions:**
 ```bash
 git clone [https://github.com/phinnphace/asl-sovereign.git](https://github.com/phinnphace/asl-sovereign.git)
 cd asl-sovereign
 pip install -r requirements.txt
-ollama run gemma
+ollama run asl_project
 streamlit run app.py
