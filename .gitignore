@@ -1,2 +1,35 @@
-sign_mnist_train.csv
-sign_mnist_test.csv
+# Large data files
+*.csv
+*.parquet
+*.parquet.zip
+*.zip
+
+# Model weights and checkpoints
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.gguf
+*.tflite
+*.h5
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment and credentials
+.env
+*.env
+*token*.txt
+*access_token*
+kaggleaccess_token.txt
+
+# OS
+desktop.ini
+.DS_Store
+Thumbs.db
