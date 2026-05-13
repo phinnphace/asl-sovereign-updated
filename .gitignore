@@ -1,0 +1,8 @@
+.streamlit/secrets.toml
+credentials.json
+*.csv
+*.zip
+*.parquet
+__pycache__/
+*.pyc
+*.env
