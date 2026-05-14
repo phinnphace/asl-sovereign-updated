@@ -1,6 +1,7 @@
-import modal
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+import os
+import json
+import gspread
+from fastapi import FastAPI
 from pydantic import BaseModel
 
 # 1. Define the App and connect your Cloud Drive
@@ -52,33 +53,24 @@ def fastapi_app():
         verbose=False
     )
     
-    # Connect to Google Sheets securely
-    gc = gspread.service_account(filename='/data/credentials.json')
-    # Replace with your actual Google Sheet exact name!
-    sheet = gc.open("ASL_Diagnosis_Log").sheet1 
+    import os
+import json
+import gspread
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-    @web_app.post("/api/diagnose")
-    async def diagnose_asl(request: DiagnosisRequest):
-        try:
-            # Recreate your Gemma 2 Instruct template manually
-            prompt = f"<start_of_turn>user\n{request.user_text}<end_of_turn>\n<start_of_turn>model\n"
-            
-            # Run the inference
-            output = llm(
-                prompt,
-                max_tokens=500,
-                stop=["<end_of_turn>"],
-                echo=False
-            )
-            
-            diagnosis_result = output["choices"][0]["text"].strip()
-            
-            # Log it to Google Sheets
-            sheet.append_row([request.user_text, diagnosis_result])
-            
-            return {"diagnosis": diagnosis_result}
-            
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-            
-    return web_app
+# --- [Your other setup code and Pydantic models stay here] ---
+
+# Connect to Google Sheets securely using Modal's encrypted vault
+# We pull the raw JSON string from the environment, convert it to a Python dictionary, 
+# and pass it directly to gspread. No physical files on the hard drive.
+creds_json_string = os.environ["GOOGLE_CREDS"]
+creds_dict = json.loads(creds_json_string)
+gc = gspread.service_account_from_dict(creds_dict)
+
+# Replace with your actual Google Sheet exact name!
+sheet = gc.open("decode").sheet1 
+
+@web_app.post("/api/diagnose")
+async def diagnose_asl(request: DiagnosisRequest):
+    # The rest of your route logic stays exactly the same

@@ -1,8 +1,17 @@
-.streamlit/secrets.toml
-credentials.json
-*.csv
-*.zip
-*.parquet
-__pycache__/
-*.pyc
-*.env
+# --- SECRETS (Recursive) ---
+**/*credentials.json
+**/*secrets.toml*
+**/*gemini*.txt
+**/.env
+
+# --- DATA & BINARIES (Recursive) ---
+**/*.csv
+**/*.zip
+**/*.parquet
+**/*.parquet.zip
+**/modelfile
+
+# --- SYSTEM & CACHE ---
+**/__pycache__/
+**/*.pyc
+.DS_Store
