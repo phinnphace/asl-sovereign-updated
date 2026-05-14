@@ -1,0 +1,7 @@
+Create src/school_closure_monitor/ with __init__.py, __main__.py, monitor.py
+Create pyproject.toml
+Replace .env.example (from env (1).example), .gitignore (from gitignore (1)), requirements.txt
+Create .github/workflows/ci.yml and publish.yml
+Replace README.md
+Delete school_closure_monitor.py, README (1).md
+Commit and push

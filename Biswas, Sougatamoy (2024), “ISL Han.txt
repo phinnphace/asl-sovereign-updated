@@ -1,0 +1,3 @@
+Biswas, Sougatamoy (2024), “ISL Hand Gesture Dataset”, Mendeley Data, V1, doi: 10.17632/n34wm8sb3x.1
+ISL dataset
+

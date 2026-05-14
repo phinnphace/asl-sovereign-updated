@@ -1,0 +1,11 @@
+# Copy scripts to scratch
+cp gaussian_noise_inference.py /fs/scratch/PAS1619/mangocat1/
+cp gaussian_noise_job.sh /fs/scratch/PAS1619/mangocat1/
+
+# Submit
+cd /fs/scratch/PAS1619/mangocat1
+sbatch gaussian_noise_job.sh
+
+# Watch it
+squeue -u mangocat1
+tail -f logs/gaussian_<jobid>.log

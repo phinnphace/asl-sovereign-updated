@@ -1,0 +1,10 @@
+# --- Hardware Provenance Logging ---
+echo "--- JOB METADATA ---"
+echo "Job ID: $SLURM_JOB_ID"
+echo "Node: $SLURM_NODENAME"
+echo "Start Time: $(date)"
+
+# This command lists every GPU allocated to you and its unique hardware UUID
+nvidia-smi -L
+
+echo "---------------------"
