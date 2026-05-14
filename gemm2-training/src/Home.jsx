@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 
 // Just drop your actual Modal URL right here
-const API_BASE = const API_BASE = "https://phinnphace--asl-decoder-cloud-fastapi-app.modal.run/api"
+const API_BASE = "https://phinnphace--asl-decoder-cloud-fastapi-app.modal.run/api"
 const TED_URL  = 'https://raw.githubusercontent.com/phinnphace/asl-sovereign/main/ted.jpg'
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
