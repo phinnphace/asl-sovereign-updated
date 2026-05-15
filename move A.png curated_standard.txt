@@ -1,3 +1,0 @@
-move A.png curated_standard\
-move B.png curated_standard\
-move C.png curated_standard\

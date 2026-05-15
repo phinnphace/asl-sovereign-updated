@@ -15,3 +15,15 @@
 **/__pycache__/
 **/*.pyc
 .DS_Store
+# --- RAW DATA FOLDERS (documented in DATA_ARCHIVE.md, not stored in repo) ---
+ISL custom Data/
+curated_standard/
+raw_data/
+sign_mnist_images/
+raw_dataASL.zip
+111123288.parquet.zip
+
+# --- TEMP / JUNK ---
+modalurl.txt
+modalurl
+gemm2-training/modalurl

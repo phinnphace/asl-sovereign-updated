@@ -1,2 +1,0 @@
-FROM ./gemma2_asl_finetuned-unsloth.Q4_K_M.gguf
-TEMPLATE """<start_of_turn>user\n{{ .Prompt }}<end_of_turn>\n<start_of_turn>model\n"""

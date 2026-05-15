@@ -1,0 +1,28 @@
+{
+  "name": "provenance-decoder-ring",
+  "private": true,
+<<<<<<< HEAD
+  "version": "0.1.0",
+=======
+  "version": "0.2.0",
+>>>>>>> ad4a7936d2930d974e792752862fe3ac76e8d7b0
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+<<<<<<< HEAD
+    "react-dom": "^18.3.1"
+=======
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.23.1"
+>>>>>>> ad4a7936d2930d974e792752862fe3ac76e8d7b0
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.0"
+  }
+}
