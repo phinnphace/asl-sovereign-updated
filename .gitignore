@@ -1,5 +1,8 @@
 # --- SECRETS (Recursive) ---
 **/*credentials.json
+**/*credentials*
+CREDENTIALS_json
+*CREDENTIALS*
 **/*secrets.toml*
 **/*gemini*.txt
 **/.env

@@ -279,7 +279,7 @@ export default function Library() {
         </Body>
         <div style={{ marginTop: '1rem' }}>
           <StatRow label="Base model"          value="Gemma 2 Instruct" note="Google AI Studio · gemma-2-9b-it" />
-          <StatRow label="Training phrases"    value="~12"              note="at submission · grows with flywheel" />
+          <StatRow label="Training phrases"    value="20"               note="v2 dataset · grows with flywheel" />
           <StatRow label="Training approach"   value="Flywheel"         note="user submissions → confirmed → training data" />
           <StatRow label="Fine-tuning notebook" value="gemma2training.ipynb" note="Google Colab · ASL_Project/Drive" />
         </div>

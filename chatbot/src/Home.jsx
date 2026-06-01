@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 // Just drop your actual Modal URL right here
 const API_BASE = "https://phinnphace--asl-decoder-cloud-fastapi-app.modal.run/api"
-const TED_URL  = 'https://raw.githubusercontent.com/phinnphace/asl-sovereign/main/ted.jpg'
+const TED_URL  = '/Tedcrop.png'
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const F = {
@@ -152,10 +152,10 @@ function ChatMessage({ role, content, result }) {
         lineHeight: 1.6,
       }}>
         {content}
-        {result && result.training_regime && (
+        {result && result.failure_mode && (
           <div style={{ marginTop: '0.5rem', borderTop: `2px solid ${C.tan}`, paddingTop: '0.5rem' }}>
             <div style={{ fontFamily: F.mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7A6540', marginBottom: 4 }}>Fingerprint detected</div>
-            <div style={{ fontFamily: F.display, fontSize: 20, letterSpacing: '0.05em', color: regimeColor(result.training_regime) }}>{result.training_regime}</div>
+            <div style={{ fontFamily: F.display, fontSize: 20, letterSpacing: '0.05em', color: regimeColor(result.failure_mode) }}>{result.failure_mode}</div>
             {result.firing_pairs?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5 }}>
                 {result.firing_pairs.map((p, i) => (
@@ -174,9 +174,9 @@ function ChatMessage({ role, content, result }) {
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────────────────────
 // HOME PAGE
-// ══════════════════════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────────────────────
 export default function Home() {
   const [messages, setMessages] = useState([{
     role: 'assistant',
@@ -217,7 +217,7 @@ export default function Home() {
         result = await r.json()
       }
       // Using result.diagnosis to pull the exact dictionary key returned by Modal
-      setMessages(p => [...p, { role: 'assistant', content: result.diagnosis || 'Decoded.', result }])
+      setMessages(p => [...p, { role: 'assistant', content: result.response || result.provenance_diagnosis || 'Decoded.', result }])
       setDiagCount(p => (p || 0) + 1)
     } catch {
       setMessages(p => [...p, { role: 'assistant', content: 'Could not reach the decoder backend. Is it running?', result: null }])
@@ -254,14 +254,13 @@ export default function Home() {
               fontFamily: F.mono, fontSize: 11, color: '#C8B98A',
               border: '1px solid #5A4A2A', padding: '2px 10px',
               textDecoration: 'none', letterSpacing: '0.08em',
-              transition: 'color 0.15s',
             }}>
               🚪 Ted's Library →
             </Link>
           </div>
         </div>
 
-        {/* Ted */}
+        {/* Ted in header */}
         <div style={{ position: 'relative', flexShrink: 0, marginLeft: '1.5rem', marginTop: '-0.25rem' }}>
           <div style={{ position: 'absolute', top: -28, right: -16, width: 70, zIndex: 0, transform: 'rotate(18deg)' }}>
             <SpikeBurst width={70} color="#FFE033" text="POW!" textColor={C.red} />
@@ -269,21 +268,22 @@ export default function Home() {
           <div style={{ position: 'relative', zIndex: 2, marginBottom: 8, marginLeft: 4 }}>
             <SpeechBubble>Ted said so.</SpeechBubble>
           </div>
-          <div style={{ width: 118, height: 118, border: `4px solid ${C.paper}`, boxShadow: `5px 5px 0 ${C.red}`, overflow: 'hidden', transform: 'rotate(2deg)', position: 'relative', zIndex: 1 }}>
-            <img src={TED_URL} alt="Ted" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
+          <div style={{ width: 118, overflow: 'visible', transform: 'rotate(2deg)', position: 'relative', zIndex: 1 }}>
+            <img src={TED_URL} alt="Ted" style={{ width: '100%', height: 'auto', display: 'block' }} />
           </div>
           <div style={{ fontFamily: F.mono, fontSize: 9, color: '#C8B98A', textAlign: 'center', marginTop: 5, lineHeight: 1.5 }}>
             TED · STOOP TABBY<br />Certified this pipeline.
           </div>
         </div>
+
       </div>
 
       {/* ── METRICS ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1rem', margin: '1.25rem 0' }}>
-        <MetricCard label="Fingerprints matched" value="2,370" sub="images · ASL + ISL · 24 letters" />
-        <MetricCard label="Cross-dataset match"  value="r=0.945" sub="same result, different sign languages" />
-        <MetricCard label="Stability check"      value="100%"   sub="same fingerprints across 1,000 tests" />
-        <MetricCard label="Diagnoses run"         value={diagCount !== null ? diagCount.toLocaleString() : '—'} sub="grows with use" />
+        <MetricCard label="Diagnostic Confidence" value="Accumulating" sub="grows with user submissions" />
+        <MetricCard label="Mantel Correlation"     value="r=0.945"     sub="Roboflow vs ISL · p<0.001" />
+        <MetricCard label="Images Audited"         value="2,370"       sub="ASL + ISL · 24 static letters" />
+        <MetricCard label="Diagnoses Run"          value={diagCount !== null ? diagCount.toLocaleString() : '—'} sub="flywheel · grows with use" />
       </div>
 
       {/* ── INTRO ── */}
@@ -419,11 +419,39 @@ export default function Home() {
         riskLevel="low"
       />
 
-      <div style={{ fontFamily: F.mono, fontSize: 10, color: '#9A7F52', marginBottom: '2rem' }}>
+      <div style={{ fontFamily: F.mono, fontSize: 10, color: '#9A7F52', marginBottom: '1.5rem' }}>
         Reference fingerprints from FSboard · Georg et al. 2024 · CC BY 4.0 ·{' '}
         <a href="https://arxiv.org/abs/2407.15806" style={{ color: '#9A7F52' }}>arxiv.org/abs/2407.15806</a>
-        {' '}· <Link to="/library" style={{ color: '#9A7F52' }}>Full methodology in Ted's Library →</Link>
       </div>
+
+      {/* ── LIBRARY DOOR ── */}
+      <Link to="/library" style={{ textDecoration: 'none' }}>
+        <div style={{
+          border: `4px solid ${C.ink}`,
+          background: '#1C1208',
+          padding: '1.25rem 1.5rem',
+          boxShadow: `8px 8px 0 ${C.ink}`,
+          marginBottom: '2.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.5rem',
+          cursor: 'pointer',
+          transition: 'transform 0.1s',
+        }}>
+          <div style={{ fontSize: 48, flexShrink: 0 }}>🚪</div>
+          <div>
+            <div style={{ fontFamily: F.display, fontSize: 26, color: '#E8D9B0', letterSpacing: '0.05em', lineHeight: 1.1 }}>
+              TED'S LIBRARY
+            </div>
+            <div style={{ fontFamily: F.body, fontSize: 14, color: '#8B7355', marginTop: 4, lineHeight: 1.6 }}>
+              Nerdy, technical documentation this way. Datasets, validation tests, citations, the full comedy of errors. Watch your step.
+            </div>
+            <div style={{ fontFamily: F.mono, fontSize: 10, color: '#6B5A3A', marginTop: 6, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              → Methodology · Data · Gemma 4 Audit · Validation Suite
+            </div>
+          </div>
+        </div>
+      </Link>
 
       {/* ── ON CONFIDENCE — Ted on the shelf ── */}
       <div style={{ position: 'relative', margin: '2.5rem 0 0 0' }}>
@@ -434,77 +462,62 @@ export default function Home() {
             ③ ON CONFIDENCE
           </span>
 
-          {/* Ted on the shelf — absolute positioned to sit ON the rule */}
-          <div style={{
-            position: 'absolute',
-            right: 60,
-            top: -130,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}>
-            {/* Spikey burst behind bubble */}
-            <div style={{ position: 'absolute', top: -18, right: -22, width: 65, zIndex: 0, transform: 'rotate(-12deg)' }}>
-              <SpikeBurst width={65} color="#FFE033" />
-            </div>
-            {/* Bubble */}
-            <div style={{ position: 'relative', zIndex: 2, marginBottom: 6 }}>
-              <SpeechBubble>Ted says so.</SpeechBubble>
-            </div>
-            {/* Ted photo — sitting on the rule line */}
-            <div style={{
-              width: 100, height: 100,
-              border: `3px solid ${C.ink}`,
-              boxShadow: `4px 4px 0 ${C.red}`,
-              overflow: 'hidden',
-              transform: 'rotate(-1.5deg)',
-              zIndex: 1,
-              position: 'relative',
-            }}>
-              <img src={TED_URL} alt="Ted" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }} />
-            </div>
-          </div>
         </div>
 
         {/* Confidence content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '1.5rem', marginTop: '1rem', alignItems: 'start' }}>
-          <div>
-            <div style={{ fontFamily: F.display, fontSize: 58, color: C.ink, lineHeight: 1 }}>
-              Accumulating
-              <span style={{ display: 'inline-block', border: `4px solid ${C.red}`, color: C.red, fontFamily: F.display, fontSize: 22, letterSpacing: '0.18em', padding: '3px 14px', transform: 'rotate(-7deg)', opacity: 0.9, marginLeft: 14, verticalAlign: 'middle' }}>LIVE</span>
+        <div style={{ marginTop: '1rem' }}>
+          <div style={{ fontFamily: F.display, fontSize: 58, color: C.ink, lineHeight: 1 }}>
+            Accumulating
+            <span style={{ display: 'inline-block', border: `4px solid ${C.red}`, color: C.red, fontFamily: F.display, fontSize: 22, letterSpacing: '0.18em', padding: '3px 14px', transform: 'rotate(-7deg)', opacity: 0.9, marginLeft: 14, verticalAlign: 'middle' }}>LIVE</span>
+          </div>
+          <div style={{ fontFamily: F.mono, fontSize: 11, color: '#9A7F52', marginTop: 4 }}>
+            construct validity confirmed · absolute accuracy accumulates with use
+          </div>
+          <div style={{ fontFamily: F.body, fontSize: 15, lineHeight: 1.9, color: '#3A2E1A', borderLeft: `5px solid ${C.ink}`, paddingLeft: '1rem', marginTop: '0.75rem', maxWidth: 780 }}>
+            The validation suite establishes that this instrument measures something real and stable —
+            bootstrap persistence at 1,000 iterations, Gaussian noise probe confirming weight-encoded
+            confusion structure, Mantel r=0.945 cross-dataset. What it does not yet have is an absolute
+            accuracy percentage against known-provenance models, because a labeled set of models with
+            known training regimes does not exist in the literature.<br /><br />
+            We can tell you that this instrument is measuring something real. We refuse to make up a number
+            for how often we get it right. Every diagnosis submitted helps build that number honestly.
+          </div>
+        </div>
+      </div>
+
+      {/* ── TED ABOVE FOOTER ── */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', marginBottom: '-10px', paddingRight: '2rem', position: 'relative', zIndex: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ position: 'relative', marginBottom: 6 }}>
+            <div style={{ position: 'absolute', top: -20, right: -18, width: 60, zIndex: 0, transform: 'rotate(15deg)' }}>
+              <SpikeBurst width={60} color="#FFE033" />
             </div>
-            <div style={{ fontFamily: F.mono, fontSize: 11, color: '#9A7F52', marginTop: 4 }}>
-              validity confirmed · absolute accuracy grows with use
-            </div>
-            <div style={{ fontFamily: F.body, fontSize: 15, lineHeight: 1.9, color: '#3A2E1A', borderLeft: `5px solid ${C.ink}`, paddingLeft: '1rem', marginTop: '0.75rem' }}>
-              We can tell you that this instrument is measuring something real and stable —
-              the same fingerprints show up across completely different sign language datasets,
-              different signers, different conditions.<br /><br />
-              What we can't yet tell you is <em>how often we get it right</em> — because to score that,
-              you'd need a library of models with known training histories, and that library doesn't exist yet.
-              We refuse to make up a number.<br /><br />
-              Every diagnosis you submit helps build that library. The confidence number you want
-              is the thing this instrument is designed to produce — honestly, from real use.
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <SpeechBubble>I said so.</SpeechBubble>
             </div>
           </div>
-          <div style={{ border: `4px solid ${C.ink}`, boxShadow: `4px 4px 0 ${C.ink}`, overflow: 'hidden' }}>
-            <img src={TED_URL} alt="Ted" style={{ width: '100%', display: 'block', objectFit: 'cover', objectPosition: 'center 30%', maxHeight: 200 }} />
-            <div style={{ fontFamily: F.mono, fontSize: 9, color: '#7A6540', textAlign: 'center', padding: 5, background: C.tan, borderTop: `2px solid ${C.ink}` }}>
-              Gemma 4 saw Ted via Ollama.<br />HuggingFace could not see Ted.
-            </div>
+          <div style={{
+            width: 110,
+            overflow: 'visible',
+            transform: 'rotate(2deg)',
+          }}>
+            <img src={TED_URL} alt="Ted" style={{ width: '100%', height: 'auto', display: 'block' }} />
+          </div>
+          <div style={{ fontFamily: F.mono, fontSize: 9, color: '#7A6540', textAlign: 'center', marginTop: 4, lineHeight: 1.5 }}>
+            TED · STOOP TABBY<br />Certified this pipeline.
           </div>
         </div>
       </div>
 
       {/* ── FOOTER ── */}
-      <div style={{ borderTop: `4px solid ${C.ink}`, paddingTop: 8, marginTop: '2.5rem', fontFamily: F.mono, fontSize: 10, color: '#7A6540', lineHeight: 1.8 }}>
+      <div style={{ borderTop: `4px solid ${C.ink}`, paddingTop: 8, marginTop: '0.5rem', fontFamily: F.mono, fontSize: 10, color: '#7A6540', lineHeight: 1.8 }}>
         THE PROVENANCE DECODER RING &nbsp;·&nbsp;
         Audited subject: Gemma 4 E4B (gemma4:e4b-it-q4_K_M via Ollama) &nbsp;·&nbsp;
-        Diagnostic engine: Gemma 2 Instruct (Google AI Studio) &nbsp;·&nbsp;
+        Diagnostic engine: Gemma 2 Instruct &nbsp;·&nbsp;
         FSboard: Georg et al. 2024 (CC BY 4.0) &nbsp;·&nbsp;
         ISL dataset: Biswas 2024 · doi:10.17632/n34wm8sb3x.1 &nbsp;·&nbsp;
         <Link to="/library" style={{ color: '#7A6540' }}>Ted's Library →</Link>
       </div>
     </div>
   )
-}                 
+}
