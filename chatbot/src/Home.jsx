@@ -180,7 +180,7 @@ function ChatMessage({ role, content, result }) {
 export default function Home() {
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: "Describe what your model gets wrong — plain language works fine. Or upload a CSV of your results. I'll read the fingerprint.",
+    content: "Hey. Just talk. Tell me what's going wrong — plain language, no formatting required. Upload a confusion matrix or a CSV if you have one, or nothing at all. You don't adjust to me. I come to you.",
     result: null,
   }])
   const [input, setInput]       = useState('')
@@ -241,9 +241,9 @@ export default function Home() {
             💍 THE PROVENANCE DECODER RING
           </div>
           <div style={{ fontFamily: F.mono, fontSize: 11, color: '#C8B98A', marginTop: 7, lineHeight: 1.75 }}>
-            ASL MODEL TRAINING DATA DIAGNOSTICS &nbsp;·&nbsp; READ THE FINGERPRINT &nbsp;·&nbsp; KNOW WHAT YOUR MODEL LEARNED<br />
-            Audited subject: <strong style={{ color: '#E8C96A' }}>Gemma 4 E4B</strong>
-            &nbsp;·&nbsp; Diagnostic engine: <strong style={{ color: '#E8C96A' }}>Gemma 2 Instruct</strong>
+            YOU DON'T ADJUST TO THIS. &nbsp;·&nbsp; IT COMES TO YOU. &nbsp;·&nbsp; TALK HOWEVER YOU ACTUALLY TALK.<br />
+            Diagnostic engine: <strong style={{ color: '#E8C96A' }}>Gemma 2 Instruct</strong>
+            &nbsp;·&nbsp; Audited subject: <strong style={{ color: '#E8C96A' }}>Gemma 4 E4B</strong>
             &nbsp;·&nbsp; <a href="https://github.com/phinnphace/asl-sovereign" style={{ color: '#E8C96A' }}>asl-sovereign ↗</a>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: 10 }}>
@@ -289,25 +289,26 @@ export default function Home() {
       {/* ── INTRO ── */}
       <div style={{ border: `3px solid ${C.ink}`, background: C.cream, padding: '1rem 1.25rem', boxShadow: `5px 5px 0 ${C.ink}`, marginBottom: '1.5rem' }}>
         <div style={{ fontFamily: F.display, fontSize: 28, color: C.ink, letterSpacing: '0.04em', marginBottom: 8 }}>
-          Training leaves fingerprints.
+          Be you so we can get to you.
         </div>
         <div style={{ fontFamily: F.body, fontSize: 15, lineHeight: 1.85, color: '#3A2E1A', maxWidth: 780 }}>
-          When a computer vision model is taught to recognize sign language, <em>how</em> it was taught gets baked in.
-          A model trained on hand skeleton data makes different mistakes than one trained on real video.
-          Those mistakes are predictable. They form a pattern — a fingerprint.<br /><br />
-          This tool reads that fingerprint. You describe what's going wrong, or upload your results,
-          and we tell you what your model was probably trained on — and what that means for how you use it.
-          You don't need to know anything about machine learning to use it.
+          ASL signers have been doing the adapting for a long time. Tools get built with great benchmark numbers
+          — measured on lab conditions, on curated datasets, on hands that happened to be in the room.
+          Real signers in real conditions are a different story.<br /><br />
+          This is the inverse. You don't adjust to this interface. You talk however you actually talk.
+          The model on the other end was trained to meet you there — to read the fingerprint in what you describe
+          and tell you what was probably wrong with the training data that got you here.
+          No machine learning knowledge required. No formatting required. Just say what's going wrong.
         </div>
       </div>
 
       {/* ── SEND YOUR SIGNAL ── */}
       <div style={{ fontFamily: F.display, fontSize: 26, letterSpacing: '0.06em', color: C.ink, borderTop: `4px double ${C.ink}`, borderBottom: `1px solid ${C.ink}`, padding: '5px 0', margin: '0 0 1rem 0' }}>
-        ① SEND YOUR SIGNAL
+        ① JUST TALK
       </div>
       <p style={{ fontFamily: F.body, fontSize: 15, color: '#3A2E1A', marginBottom: '1rem', lineHeight: 1.7 }}>
-        Tell us what's going wrong. Plain language is fine. Upload a file if you have one.
-        The ring does the rest.
+        Say what's going wrong — however you'd say it to a friend. Upload something if you have it, or don't.
+        Every real complaint from a real signer makes this better for the next one.
       </p>
 
       {/* Chat */}
@@ -325,7 +326,7 @@ export default function Home() {
         <input ref={fileRef} type="file" accept=".csv,image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) send('', f); e.target.value = '' }} />
         <textarea value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
-          placeholder='"K always comes back as V" · "M, N, T are bleeding together" · upload a CSV ↑'
+          placeholder='"K always comes back as V" · "it can\'t tell M from N" · "the whole middle cluster is wrong" · or just upload something ↑'
           rows={2}
           style={{ flex: 1, fontFamily: F.mono, fontSize: 14, background: 'transparent', border: 'none', outline: 'none', padding: '0.6rem 0.75rem', color: C.ink, resize: 'none', lineHeight: 1.5 }}
         />
