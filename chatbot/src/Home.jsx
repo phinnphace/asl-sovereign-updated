@@ -475,16 +475,15 @@ export default function Home() {
 
       {/* ── NO VISION MODEL NOTE ── */}
       <div style={{
-        display: 'inline-block',
+        display: 'block',
         fontFamily: F.mono,
         fontSize: 10,
         color: C.red,
         border: `1.5px solid ${C.red}`,
         background: '#FAECE7',
-        padding: '3px 10px',
+        padding: '4px 12px',
         marginTop: 6,
         letterSpacing: '0.06em',
-        transform: 'rotate(-0.5deg)',
       }}>
         ⚠ Since the entire point of this project is addressing failures of vision models,
         this tool does not use one. JPEG / PNG not supported.
