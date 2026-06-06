@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 
-// Just drop your actual Modal URL right here
 const API_BASE = "https://phinnphace--asl-decoder-cloud-fastapi-app.modal.run/api"
 const TED_URL  = '/Tedcrop.png'
 
@@ -20,6 +19,72 @@ const C = {
   amber: "#C47A0A",
   blue:  "#1B4F8A",
   green: "#1A6B3A",
+}
+
+// ── Strip [EVIDENCE_GRID]...[/EVIDENCE_GRID] from bot reply before display ────
+function stripEvidenceGrid(text) {
+  const idx = text.indexOf('[EVIDENCE_GRID]')
+  return idx !== -1 ? text.slice(0, idx).trim() : text
+}
+
+// ── File upload helpers ───────────────────────────────────────────────────────
+// All uploads are converted to a message string and enter the conversation
+// through /api/chat. Qwen2.5-7B is text-only, so images get a verbal prompt
+// asking the user to describe what they see — consistent with the listening posture.
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload  = e => resolve(e.target.result)
+    reader.onerror = reject
+    reader.readAsText(file)
+  })
+}
+
+function summarizeCSV(content, filename) {
+  const lines = content.trim().split('\n').filter(l => l.trim())
+  if (lines.length === 0) return `I uploaded ${filename} but it appears to be empty.`
+  const headers = lines[0].split(',').map(h => h.trim())
+  // Small enough to include in full — let the model read it directly
+  if (content.length <= 1800) {
+    return `I'm uploading my results as a CSV (${filename}):\n\n${content}`
+  }
+  // Larger file — send headers + sample rows
+  const rowCount   = lines.length - 1
+  const sampleRows = lines.slice(1, 5).join('\n')
+  return (
+    `I'm uploading a CSV (${filename}) — ${rowCount} rows, ${headers.length} columns.\n` +
+    `Headers: ${headers.join(', ')}\n` +
+    `First rows:\n${sampleRows}`
+  )
+}
+
+async function processUploadedFile(file) {
+  const isImage = file.type.startsWith('image/')
+  const isCSV   = file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv'
+
+  if (isImage) {
+    // Intentionally unsupported — see the note in the UI.
+    return null
+  }
+
+  if (isCSV) {
+    try {
+      const content = await readFileAsText(file)
+      return summarizeCSV(content, file.name)
+    } catch {
+      return `I tried to upload ${file.name} but couldn't read it.`
+    }
+  }
+
+  // Any other text-readable format — try it
+  try {
+    const content = await readFileAsText(file)
+    const preview = content.slice(0, 1200)
+    return `I'm uploading ${file.name}:\n\n${preview}${content.length > 1200 ? '\n[truncated]' : ''}`
+  } catch {
+    return `I uploaded ${file.name} — not sure how to read it. Want me to describe what I'm seeing?`
+  }
 }
 
 // ── Spikey burst ──────────────────────────────────────────────────────────────
@@ -80,26 +145,19 @@ function SpeechBubble({ children }) {
 
 // ── Codex card ────────────────────────────────────────────────────────────────
 function CodexCard({ regime, cer, matrix, plain, useCases, pairs, risk, riskLevel }) {
-  const hdr = { landmark: C.red, full: C.green, hybrid: C.blue }[regime]
-  const bdg = { landmark: '#FAECE7', full: '#E1F5EE', hybrid: '#E6F1FB' }[regime]
-  const rc  = { high: { bg: '#FAECE7', fg: C.red }, moderate: { bg: '#FFF8E1', fg: C.amber }, low: { bg: '#E1F5EE', fg: C.green } }[riskLevel]
-  const title = {
-    landmark: '① LANDMARK-ONLY',
-    full:     '② FULL LANDMARKS',
-    hybrid:   '③ HYBRID',
-  }[regime]
+  const hdr   = { landmark: C.red, full: C.green, hybrid: C.blue }[regime]
+  const bdg   = { landmark: '#FAECE7', full: '#E1F5EE', hybrid: '#E6F1FB' }[regime]
+  const rc    = { high: { bg: '#FAECE7', fg: C.red }, moderate: { bg: '#FFF8E1', fg: C.amber }, low: { bg: '#E1F5EE', fg: C.green } }[riskLevel]
+  const title = { landmark: '⑀ LANDMARK-ONLY', full: '⑁ FULL LANDMARKS', hybrid: '⑂ HYBRID' }[regime]
 
   return (
     <div style={{ border: `3px solid ${C.ink}`, background: C.cream, boxShadow: `5px 5px 0 ${C.ink}`, marginBottom: '1.25rem', overflow: 'hidden' }}>
       <div style={{ background: hdr, padding: '0.5rem 0.9rem', borderBottom: `3px solid ${C.ink}`, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <span style={{ fontFamily: F.display, fontSize: 20, color: C.cream, letterSpacing: '0.04em' }}>{title} · CER {cer}</span>
       </div>
-
-      {/* Plain language summary */}
       <div style={{ padding: '0.6rem 0.9rem 0 0.9rem', fontFamily: F.body, fontSize: 15, color: C.ink, lineHeight: 1.7, borderBottom: `2px dashed ${C.tan}` }}>
         {plain}
       </div>
-
       <div style={{ padding: '0.7rem 0.9rem', display: 'flex', gap: '0.85rem' }}>
         <pre style={{
           fontFamily: F.mono, fontSize: 10.5, lineHeight: 1.5, color: C.ink,
@@ -135,9 +193,8 @@ function MetricCard({ label, value, sub }) {
 }
 
 // ── Chat message ──────────────────────────────────────────────────────────────
-function ChatMessage({ role, content, result }) {
+function ChatMessage({ role, content, complete }) {
   const isUser = role === 'user'
-  const regimeColor = r => r === 'LANDMARK-ONLY' ? C.red : r === 'FULL LANDMARKS' ? C.green : C.blue
   return (
     <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: '0.75rem' }}>
       <div style={{
@@ -150,23 +207,20 @@ function ChatMessage({ role, content, result }) {
         fontSize: 14,
         color: isUser ? C.paper : C.ink,
         lineHeight: 1.6,
+        whiteSpace: 'pre-wrap',
       }}>
         {content}
-        {result && result.failure_mode && (
-          <div style={{ marginTop: '0.5rem', borderTop: `2px solid ${C.tan}`, paddingTop: '0.5rem' }}>
-            <div style={{ fontFamily: F.mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7A6540', marginBottom: 4 }}>Fingerprint detected</div>
-            <div style={{ fontFamily: F.display, fontSize: 20, letterSpacing: '0.05em', color: regimeColor(result.failure_mode) }}>{result.failure_mode}</div>
-            {result.firing_pairs?.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5 }}>
-                {result.firing_pairs.map((p, i) => (
-                  <span key={i} style={{ fontFamily: F.mono, fontSize: 11, padding: '1px 7px', border: `2px solid ${C.red}`, background: '#FAECE7' }}>{p}</span>
-                ))}
-              </div>
-            )}
-            <div style={{ marginTop: 6, fontFamily: F.body, fontSize: 13, color: '#3A2E1A', lineHeight: 1.6 }}>{result.provenance_diagnosis}</div>
-            <div style={{ marginTop: 6, padding: '4px 8px', border: `2px solid ${C.red}`, background: '#FAECE7', fontFamily: F.mono, fontSize: 11, color: C.red }}>
-              ⚠ {result.recommendation}
-            </div>
+        {complete && (
+          <div style={{
+            marginTop: '0.5rem',
+            paddingTop: '0.5rem',
+            borderTop: `2px dashed ${C.tan}`,
+            fontFamily: F.mono,
+            fontSize: 10,
+            color: '#7A6540',
+            letterSpacing: '0.08em',
+          }}>
+            ✓ DECODED · LOGGED TO DECODER RING
           </div>
         )}
       </div>
@@ -174,55 +228,106 @@ function ChatMessage({ role, content, result }) {
   )
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // HOME PAGE
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 export default function Home() {
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: "Hey. Just talk. Tell me what's going wrong — plain language, no formatting required. Upload a confusion matrix or a CSV if you have one, or nothing at all. You don't adjust to me. I come to you.",
-    result: null,
+    content: "Hey — what's on your mind? I'm a listener bot built to gather real-world experiences with vision models and run them through the decoder ring. Ted the cat has the nerdy details on what that means. You sign how you sign. That's the whole point. So... what's been going on?",
+    complete: false,
   }])
-  const [input, setInput]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [diagCount, setDiagCount] = useState(null)
-  const fileRef   = useRef(null)
-  const chatEnd   = useRef(null)
+
+  // Full message history sent to Modal on each turn
+  const [conversationHistory, setConversationHistory] = useState([])
+
+  const [input,   setInput]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const chatEnd = useRef(null)
+  const fileRef = useRef(null)
 
   useEffect(() => {
     document.body.style.backgroundColor = C.paper
     document.body.style.backgroundImage = 'repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(26,18,9,0.05) 27px,rgba(26,18,9,0.05) 28px)'
-    fetch(`${API_BASE}/count`).then(r => r.json()).then(d => setDiagCount(d.count)).catch(() => {})
   }, [])
 
-  useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+  useEffect(() => {
+    chatEnd.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const send = async (text, file = null) => {
     if (!text.trim() && !file) return
-    setMessages(p => [...p, { role: 'user', content: file ? `📎 ${file.name}` : text, result: null }])
+
+    // Convert file to message string if provided
+    let messageText = text.trim()
+    if (file) messageText = await processUploadedFile(file)
+    if (!messageText) return
+
+    // Show filename label for uploads, raw text otherwise
+    const displayContent = file ? `📎 ${file.name}\n\n${messageText}` : messageText
+
+    setMessages(p => [...p, { role: 'user', content: displayContent, complete: false }])
     setInput('')
     setLoading(true)
+
+    const updatedHistory = [
+      ...conversationHistory,
+      { role: 'user', content: messageText },
+    ]
+
     try {
-      let result
-      if (file) {
-        const fd = new FormData(); fd.append('file', file)
-        const r = await fetch(`${API_BASE}/decode-csv`, { method: 'POST', body: fd })
-        result = await r.json()
-      } else {
-        const r = await fetch(`${API_BASE}/diagnose`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          // Using user_text to correctly map to our Python Pydantic model
-          body: JSON.stringify({ user_text: text }),
-        })
-        result = await r.json()
-      }
-      // Using result.diagnosis to pull the exact dictionary key returned by Modal
-      setMessages(p => [...p, { role: 'assistant', content: result.response || result.provenance_diagnosis || 'Decoded.', result }])
-      setDiagCount(p => (p || 0) + 1)
+      const r = await fetch(`${API_BASE}/chat`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ messages: updatedHistory }),
+      })
+
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+
+      const data = await r.json()
+
+      // Strip [EVIDENCE_GRID] block from display — backend data only
+      const displayText = stripEvidenceGrid(data.reply)
+
+      setMessages(p => [...p, {
+        role:     'assistant',
+        content:  displayText,
+        complete: data.conversation_complete,
+      }])
+
+      // Keep raw reply (with grid markup) in API history for model context
+      setConversationHistory([
+        ...updatedHistory,
+        { role: 'assistant', content: data.reply },
+      ])
+
     } catch {
-      setMessages(p => [...p, { role: 'assistant', content: 'Could not reach the decoder backend. Is it running?', result: null }])
+      setMessages(p => [...p, {
+        role:     'assistant',
+        content:  'Could not reach the decoder backend. Is it running?',
+        complete: false,
+      }])
     }
+
     setLoading(false)
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
+  }
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (file) { await send('', file); e.target.value = '' }
+  }
+
+  const resetConversation = () => {
+    setConversationHistory([])
+    setMessages([{
+      role: 'assistant',
+      content: "Hey — what's on your mind? I'm a listener bot built to gather real-world experiences with vision models and run them through the decoder ring. Ted the cat has the nerdy details on what that means. You sign how you sign. That's the whole point. So... what's been going on?",
+      complete: false,
+    }])
   }
 
   return (
@@ -238,11 +343,11 @@ export default function Home() {
       }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: F.display, fontSize: 'clamp(26px,4vw,48px)', color: C.paper, letterSpacing: '0.05em', lineHeight: 1, textShadow: `4px 4px 0 ${C.red}`, whiteSpace: 'nowrap' }}>
-            💍 THE PROVENANCE DECODER RING
+            📍 THE PROVENANCE DECODER RING
           </div>
           <div style={{ fontFamily: F.mono, fontSize: 11, color: '#C8B98A', marginTop: 7, lineHeight: 1.75 }}>
             YOU DON'T ADJUST TO THIS. &nbsp;·&nbsp; IT COMES TO YOU. &nbsp;·&nbsp; TALK HOWEVER YOU ACTUALLY TALK.<br />
-            Diagnostic engine: <strong style={{ color: '#E8C96A' }}>Gemma 2 Instruct</strong>
+            Diagnostic engine: <strong style={{ color: '#E8C96A' }}>Qwen2.5-7B-Instruct</strong>
             &nbsp;·&nbsp; Audited subject: <strong style={{ color: '#E8C96A' }}>Gemma 4 E4B</strong>
             &nbsp;·&nbsp; <a href="https://github.com/phinnphace/asl-sovereign" style={{ color: '#E8C96A' }}>asl-sovereign ↗</a>
           </div>
@@ -250,12 +355,8 @@ export default function Home() {
             <span style={{ fontFamily: F.display, fontSize: 13, letterSpacing: '0.14em', background: C.red, color: C.cream, border: `2px solid ${C.paper}`, padding: '2px 14px', display: 'inline-block', transform: 'rotate(-2deg)' }}>
               CLASSIFIED INSTRUMENT
             </span>
-            <Link to="/library" style={{
-              fontFamily: F.mono, fontSize: 11, color: '#C8B98A',
-              border: '1px solid #5A4A2A', padding: '2px 10px',
-              textDecoration: 'none', letterSpacing: '0.08em',
-            }}>
-              🚪 Ted's Library →
+            <Link to="/library" style={{ fontFamily: F.mono, fontSize: 11, color: '#C8B98A', border: '1px solid #5A4A2A', padding: '2px 10px', textDecoration: 'none', letterSpacing: '0.08em' }}>
+              🪶 Ted's Library →
             </Link>
           </div>
         </div>
@@ -275,15 +376,14 @@ export default function Home() {
             TED · STOOP TABBY<br />Certified this pipeline.
           </div>
         </div>
-
       </div>
 
       {/* ── METRICS ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1rem', margin: '1.25rem 0' }}>
         <MetricCard label="Diagnostic Confidence" value="Accumulating" sub="grows with user submissions" />
-        <MetricCard label="Mantel Correlation"     value="r=0.945"     sub="Roboflow vs ISL · p<0.001" />
-        <MetricCard label="Images Audited"         value="2,370"       sub="ASL + ISL · 24 static letters" />
-        <MetricCard label="Diagnoses Run"          value={diagCount !== null ? diagCount.toLocaleString() : '—'} sub="flywheel · grows with use" />
+        <MetricCard label="Mantel Correlation"     value="r=0.945"      sub="Roboflow vs ISL · p<0.001" />
+        <MetricCard label="Images Audited"         value="2,370"        sub="ASL + ISL · 24 static letters" />
+        <MetricCard label="Training Data"          value="Live"         sub="every real submission counts" />
       </div>
 
       {/* ── INTRO ── */}
@@ -302,50 +402,101 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── SEND YOUR SIGNAL ── */}
+      {/* ── JUST TALK ── */}
       <div style={{ fontFamily: F.display, fontSize: 26, letterSpacing: '0.06em', color: C.ink, borderTop: `4px double ${C.ink}`, borderBottom: `1px solid ${C.ink}`, padding: '5px 0', margin: '0 0 1rem 0' }}>
-        ① JUST TALK
+        ⑀ JUST TALK
       </div>
       <p style={{ fontFamily: F.body, fontSize: 15, color: '#3A2E1A', marginBottom: '1rem', lineHeight: 1.7 }}>
-        Say what's going wrong — however you'd say it to a friend. Upload something if you have it, or don't.
+        Say what's going wrong — however you'd say it to a friend. Upload a CSV or paste your results — or just talk.
         Every real complaint from a real signer makes this better for the next one.
       </p>
 
-      {/* Chat */}
+      {/* ── CHAT WINDOW ── */}
       <div style={{ border: `3px solid ${C.ink}`, background: C.cream, boxShadow: `5px 5px 0 ${C.ink}`, height: 340, overflowY: 'auto', padding: '1rem', marginBottom: '0.75rem' }}>
-        {messages.map((m, i) => <ChatMessage key={i} {...m} />)}
-        {loading && <div style={{ fontFamily: F.mono, fontSize: 13, color: '#7A6540', padding: '0.5rem' }}>Reading the fingerprint...</div>}
+        {messages.map((m, i) => (
+          <ChatMessage key={i} role={m.role} content={m.content} complete={m.complete} />
+        ))}
+        {loading && (
+          <div style={{ fontFamily: F.mono, fontSize: 13, color: '#7A6540', padding: '0.5rem' }}>
+            Reading the fingerprint…
+          </div>
+        )}
         <div ref={chatEnd} />
       </div>
 
+      {/* ── INPUT ROW ── */}
       <div style={{ display: 'flex', border: `3px solid ${C.ink}`, background: C.cream, boxShadow: `4px 4px 0 ${C.ink}` }}>
-        <button onClick={() => fileRef.current?.click()} title="Upload CSV or image"
-          style={{ background: C.tan, border: 'none', borderRight: `3px solid ${C.ink}`, padding: '0 0.85rem', cursor: 'pointer', fontSize: 20, flexShrink: 0 }}>
+        {/* File upload button */}
+        <button
+          onClick={() => fileRef.current?.click()}
+          title="Upload CSV, confusion matrix image, or any results file"
+          style={{ background: C.tan, border: 'none', borderRight: `3px solid ${C.ink}`, padding: '0 0.85rem', cursor: 'pointer', fontSize: 20, flexShrink: 0 }}
+        >
           📎
         </button>
-        <input ref={fileRef} type="file" accept=".csv,image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) send('', f); e.target.value = '' }} />
-        <textarea value={input} onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
-          placeholder='"K always comes back as V" · "it can\'t tell M from N" · "the whole middle cluster is wrong" · or just upload something ↑'
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,.txt,.json"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={'"K always comes back as V" · "it can\'t tell M from N" · "the whole middle cluster is wrong" · or upload something ↑'}
           rows={2}
           style={{ flex: 1, fontFamily: F.mono, fontSize: 14, background: 'transparent', border: 'none', outline: 'none', padding: '0.6rem 0.75rem', color: C.ink, resize: 'none', lineHeight: 1.5 }}
         />
-        <button onClick={() => send(input)} disabled={loading}
-          style={{ fontFamily: F.display, fontSize: 18, letterSpacing: '0.1em', background: loading ? '#9A7F52' : C.red, color: C.cream, border: 'none', borderLeft: `3px solid ${C.ink}`, padding: '0 1.25rem', cursor: loading ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
-          💍 DECODE
+        <button
+          onClick={() => send(input)}
+          disabled={loading}
+          style={{ fontFamily: F.display, fontSize: 18, letterSpacing: '0.1em', background: loading ? '#9A7F52' : C.red, color: C.cream, border: 'none', borderLeft: `3px solid ${C.ink}`, padding: '0 1.25rem', cursor: loading ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+        >
+          📍 DECODE
         </button>
       </div>
-      <div style={{ fontFamily: F.mono, fontSize: 10, color: '#9A7F52', marginTop: 5 }}>
-        Enter to send · Shift+Enter for new line · 📎 to attach CSV or image
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 5 }}>
+        <div style={{ fontFamily: F.mono, fontSize: 10, color: '#9A7F52' }}>
+          Enter to send · Shift+Enter for new line · 📎 to attach CSV or text file
+        </div>
+        {conversationHistory.length > 0 && (
+          <button
+            onClick={resetConversation}
+            style={{ fontFamily: F.mono, fontSize: 10, color: '#9A7F52', background: 'none', border: `1px solid #C8B98A`, padding: '2px 10px', cursor: 'pointer', letterSpacing: '0.08em' }}
+          >
+            ↺ NEW CONVERSATION
+          </button>
+        )}
+      </div>
+
+      {/* ── NO VISION MODEL NOTE ── */}
+      <div style={{
+        display: 'inline-block',
+        fontFamily: F.mono,
+        fontSize: 10,
+        color: C.red,
+        border: `1.5px solid ${C.red}`,
+        background: '#FAECE7',
+        padding: '3px 10px',
+        marginTop: 6,
+        letterSpacing: '0.06em',
+        transform: 'rotate(-0.5deg)',
+      }}>
+        ⚠ Since the entire point of this project is diagnosing the failures of vision models,
+        this tool deliberately does not use one. JPEG / PNG not supported.
+        The Codex below is the visual comparison — use your eyes.
       </div>
 
       {/* ── CONFUSION CODEX ── */}
       <div style={{ fontFamily: F.display, fontSize: 26, letterSpacing: '0.06em', color: C.ink, borderTop: `4px double ${C.ink}`, borderBottom: `1px solid ${C.ink}`, padding: '5px 0', margin: '2rem 0 1rem 0' }}>
-        ② THE CONFUSION CODEX
+        ⑁ THE CONFUSION CODEX
       </div>
       <p style={{ fontFamily: F.body, fontSize: 15, color: '#3A2E1A', marginBottom: '1.25rem', lineHeight: 1.7 }}>
-        Three ways a model gets trained. Three fingerprints. Find yours and look it up —
-        analogue style.
+        Three ways a model gets trained. Three fingerprints. Find yours and look it up — analogue style.
       </p>
 
       <CodexCard
@@ -353,13 +504,13 @@ export default function Home() {
         plain="Trained on a 21-point skeleton of the hand. Fast and simple — thinks about hand shape only, nothing else."
         matrix={
           "  Pred→  M   N   T   A   S\n" +
-          "True↓  ┌─────────────────┐\n" +
+          "True↓  ┌──────────────────┐\n" +
           "  M    │▓▓▓ ▓▓▓ ▓▓▓ ░░░ ░░░│\n" +
           "  N    │▓▓▓ ▓▓▓ ▓▓▓ ░░░ ░░░│\n" +
           "  T    │▓▓▓ ▓▓▓ ▓▓▓ ░░░ ░░░│\n" +
           "  A    │░░░ ░░░ ░░░ ▓▓▓ ▓▓▓│\n" +
           "  S    │░░░ ░░░ ░░░ ▓▓▓ ▓▓▓│\n" +
-          "       └─────────────────┘\n" +
+          "       └──────────────────┘\n" +
           "  ▓ confused  ░ fine"
         }
         useCases={[
@@ -377,13 +528,13 @@ export default function Home() {
         plain="Trained on hands, face, and body together. Sees more context — better at understanding how the whole body moves when signing."
         matrix={
           "  Pred→  M   N   T   A   S\n" +
-          "True↓  ┌─────────────────┐\n" +
+          "True↓  ┌──────────────────┐\n" +
           "  M    │▓▓▓ ▒▒▒ ▒▒▒ ░░░ ░░░│\n" +
           "  N    │▒▒▒ ▓▓▓ ▒▒▒ ░░░ ░░░│\n" +
           "  T    │▒▒▒ ▒▒▒ ▓▓▓ ░░░ ░░░│\n" +
           "  A    │░░░ ░░░ ░░░ ▓▓▓ ▒▒▒│\n" +
           "  S    │░░░ ░░░ ░░░ ▒▒▒ ▓▓▓│\n" +
-          "       └─────────────────┘\n" +
+          "       └──────────────────┘\n" +
           "  ▓ fine  ▒ sometimes wrong  ░ fine"
         }
         useCases={[
@@ -401,13 +552,13 @@ export default function Home() {
         plain="Trained on actual video frames plus body position data. The most complete picture of how someone signs — mistakes are situational, not structural."
         matrix={
           "  Pred→  M   N   T   A   S\n" +
-          "True↓  ┌─────────────────┐\n" +
+          "True↓  ┌──────────────────┐\n" +
           "  M    │▓▓▓ ░░░ ░░░ ░░░ ░░░│\n" +
           "  N    │░░░ ▓▓▓ ░░░ ░░░ ░░░│\n" +
           "  T    │░░░ ░░░ ▓▓▓ ░░░ ░░░│\n" +
           "  A    │░░░ ░░░ ░░░ ▓▓▓ ░░░│\n" +
           "  S    │░░░ ░░░ ░░░ ░░░ ▓▓▓│\n" +
-          "       └─────────────────┘\n" +
+          "       └──────────────────┘\n" +
           "  ▓ fine  ░ fine"
         }
         useCases={[
@@ -428,22 +579,13 @@ export default function Home() {
       {/* ── LIBRARY DOOR ── */}
       <Link to="/library" style={{ textDecoration: 'none' }}>
         <div style={{
-          border: `4px solid ${C.ink}`,
-          background: '#1C1208',
-          padding: '1.25rem 1.5rem',
-          boxShadow: `8px 8px 0 ${C.ink}`,
-          marginBottom: '2.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1.5rem',
-          cursor: 'pointer',
-          transition: 'transform 0.1s',
+          border: `4px solid ${C.ink}`, background: '#1C1208',
+          padding: '1.25rem 1.5rem', boxShadow: `8px 8px 0 ${C.ink}`, marginBottom: '2.5rem',
+          display: 'flex', alignItems: 'center', gap: '1.5rem', cursor: 'pointer',
         }}>
-          <div style={{ fontSize: 48, flexShrink: 0 }}>🚪</div>
+          <div style={{ fontSize: 48, flexShrink: 0 }}>🪶</div>
           <div>
-            <div style={{ fontFamily: F.display, fontSize: 26, color: '#E8D9B0', letterSpacing: '0.05em', lineHeight: 1.1 }}>
-              TED'S LIBRARY
-            </div>
+            <div style={{ fontFamily: F.display, fontSize: 26, color: '#E8D9B0', letterSpacing: '0.05em', lineHeight: 1.1 }}>TED'S LIBRARY</div>
             <div style={{ fontFamily: F.body, fontSize: 14, color: '#8B7355', marginTop: 4, lineHeight: 1.6 }}>
               Nerdy, technical documentation this way. Datasets, validation tests, citations, the full comedy of errors. Watch your step.
             </div>
@@ -454,18 +596,11 @@ export default function Home() {
         </div>
       </Link>
 
-      {/* ── ON CONFIDENCE — Ted on the shelf ── */}
+      {/* ── ON CONFIDENCE ── */}
       <div style={{ position: 'relative', margin: '2.5rem 0 0 0' }}>
-
-        {/* Section rule — Ted sits on this */}
-        <div style={{ borderTop: `4px double ${C.ink}`, borderBottom: `1px solid ${C.ink}`, padding: '5px 0', position: 'relative' }}>
-          <span style={{ fontFamily: F.display, fontSize: 26, letterSpacing: '0.06em', color: C.ink }}>
-            ③ ON CONFIDENCE
-          </span>
-
+        <div style={{ borderTop: `4px double ${C.ink}`, borderBottom: `1px solid ${C.ink}`, padding: '5px 0' }}>
+          <span style={{ fontFamily: F.display, fontSize: 26, letterSpacing: '0.06em', color: C.ink }}>⑂ ON CONFIDENCE</span>
         </div>
-
-        {/* Confidence content */}
         <div style={{ marginTop: '1rem' }}>
           <div style={{ fontFamily: F.display, fontSize: 58, color: C.ink, lineHeight: 1 }}>
             Accumulating
@@ -497,11 +632,7 @@ export default function Home() {
               <SpeechBubble>I said so.</SpeechBubble>
             </div>
           </div>
-          <div style={{
-            width: 110,
-            overflow: 'visible',
-            transform: 'rotate(2deg)',
-          }}>
+          <div style={{ width: 110, overflow: 'visible', transform: 'rotate(2deg)' }}>
             <img src={TED_URL} alt="Ted" style={{ width: '100%', height: 'auto', display: 'block' }} />
           </div>
           <div style={{ fontFamily: F.mono, fontSize: 9, color: '#7A6540', textAlign: 'center', marginTop: 4, lineHeight: 1.5 }}>
@@ -514,9 +645,9 @@ export default function Home() {
       <div style={{ borderTop: `4px solid ${C.ink}`, paddingTop: 8, marginTop: '0.5rem', fontFamily: F.mono, fontSize: 10, color: '#7A6540', lineHeight: 1.8 }}>
         THE PROVENANCE DECODER RING &nbsp;·&nbsp;
         Audited subject: Gemma 4 E4B (gemma4:e4b-it-q4_K_M via Ollama) &nbsp;·&nbsp;
-        Diagnostic engine: Gemma 2 Instruct &nbsp;·&nbsp;
+        Diagnostic engine: Qwen2.5-7B-Instruct &nbsp;·&nbsp;
         FSboard: Georg et al. 2024 (CC BY 4.0) &nbsp;·&nbsp;
-        ISL dataset: Biswas 2024 · doi:10.17632/n34wm8sb3x.1 &nbsp;·&nbsp;
+        ISL dataset: Biswas 2024 · doi:10.17632/n34w8sb3x.1 &nbsp;·&nbsp;
         <Link to="/library" style={{ color: '#7A6540' }}>Ted's Library →</Link>
       </div>
     </div>
