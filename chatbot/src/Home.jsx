@@ -234,7 +234,7 @@ function ChatMessage({ role, content, complete }) {
 export default function Home() {
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: "Hey — what's on your mind? I'm a listener bot built to gather real-world experiences with vision models and run them through the decoder ring. Ted the cat has the nerdy details on what that means. You sign how you sign. That's the whole point. So... what's been going on?",
+    content: "Hey — what's on your mind? Just so you know, I'm a listener bot built to gather real-world experiences with vision models, sort what you tell me, and run it through the decoder ring (check out Ted the cat for the nerdy details on what that means). You get back an answer on what the model or system you've been using was likely trained on — which tells you its limitations and what it's actually built for. And your words make the decoder ring stronger for everyone. I'm here to figure out where the tech is going wrong. You sign how you sign. That's the whole point. So... what's been going on?",
     complete: false,
   }])
 
@@ -325,7 +325,7 @@ export default function Home() {
     setConversationHistory([])
     setMessages([{
       role: 'assistant',
-      content: "Hey — what's on your mind? I'm a listener bot built to gather real-world experiences with vision models and run them through the decoder ring. Ted the cat has the nerdy details on what that means. You sign how you sign. That's the whole point. So... what's been going on?",
+      content: "Hey — what's on your mind? Just so you know, I'm a listener bot built to gather real-world experiences with vision models, sort what you tell me, and run it through the decoder ring (check out Ted the cat for the nerdy details on what that means). You get back an answer on what the model or system you've been using was likely trained on — which tells you its limitations and what it's actually built for. And your words make the decoder ring stronger for everyone. I'm here to figure out where the tech is going wrong. You sign how you sign. That's the whole point. So... what's been going on?",
       complete: false,
     }])
   }
@@ -486,9 +486,10 @@ export default function Home() {
         letterSpacing: '0.06em',
         transform: 'rotate(-0.5deg)',
       }}>
-        ⚠ Since the entire point of this project is diagnosing the failures of vision models,
-        this tool deliberately does not use one. JPEG / PNG not supported.
-        The Codex below is the visual comparison — use your eyes.
+        ⚠ Since the entire point of this project is addressing failures of vision models,
+        this tool does not use one. JPEG / PNG not supported.
+        You can use the Codex here, the chatbot, or upload a dataset.
+        If this is still wrong, please say so. Ted knows what he is doing, but I do not.
       </div>
 
       {/* ── CONFUSION CODEX ── */}
