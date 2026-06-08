@@ -374,7 +374,7 @@ export default function Home() {
     setConversationHistory([])
     setMessages([{
       role: 'assistant',
-      content: "Hey — what's on your mind? Just so you know, I'm a listener bot built to gather real-world experiences with vision models, sort what you tell me, and run it through the decoder ring (check out Ted the cat for the nerdy details on what that means). You get back an answer on what the model or system you've been using was likely trained on — which tells you its limitations and what it's actually built for. And your words make the decoder ring stronger for everyone. I'm here to figure out where the tech is going wrong. You sign how you sign. That's the whole point. So... what's been going on?",
+      content: "Hey — what's on your mind? Just so you know, I'm a listener bot built to gather real-world experiences with vision models. Then I sort what you tell me, and pass it to the decoder ring (check out Ted the cat for the nerdy details on what that means). You get back an answer on what the model or system you've been using was likely trained on — which tells you its limitations and what it's actually built for. And your words make the decoder ring (diagnostic assay) stronger for everyone. I am not here prescribe, fix or ask you to do back flips to get me to understand. You do you just great. Ted knows what he is doing. I do not, so let me/us know where we fall short. The bot is nameless right now. If you have an idea for this, please share.  So... what's been going on?",
       complete: false,
     }])
   }
@@ -537,7 +537,7 @@ export default function Home() {
         ⚠ Since the entire point of this project is addressing failures of vision models,
         this tool does not use one. JPEG / PNG not supported.
         You can use the Codex here, the chatbot, or upload a dataset.
-        If this is still wrong, please say so. Ted knows what he is doing, but I do not.
+        If this is still wrong, please say so. Ted knows what he is doing.
       </div>
 
       {/* ── CONFUSION CODEX ── */}
