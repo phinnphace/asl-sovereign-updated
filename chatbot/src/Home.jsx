@@ -87,6 +87,55 @@ async function processUploadedFile(file) {
   }
 }
 
+
+// ── Cipher disk icon ─────────────────────────────────────────────────────────
+function CipherDisk({ size = 22, color = 'currentColor' }) {
+  const cx = 50, cy = 50, N = 26
+
+  const outerTicks = Array.from({ length: N }, (_, i) => {
+    const a = (i / N) * 2 * Math.PI - Math.PI / 2
+    const isMajor = i % 2 === 0
+    const r2 = isMajor ? 35 : 39
+    return {
+      x1: cx + 46 * Math.cos(a), y1: cy + 46 * Math.sin(a),
+      x2: cx + r2 * Math.cos(a), y2: cy + r2 * Math.sin(a),
+      w: isMajor ? 1.8 : 1.2,
+    }
+  })
+
+  const innerTicks = Array.from({ length: N }, (_, i) => {
+    const a = ((i + 0.5) / N) * 2 * Math.PI - Math.PI / 2
+    return {
+      x1: cx + 27 * Math.cos(a), y1: cy + 27 * Math.sin(a),
+      x2: cx + 21 * Math.cos(a), y2: cy + 21 * Math.sin(a),
+    }
+  })
+
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size}
+         style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+         aria-hidden="true">
+      <circle cx={cx} cy={cy} r="46" fill="none" stroke={color} strokeWidth="3" />
+      <circle cx={cx} cy={cy} r="33" fill="none" stroke={color} strokeWidth="1.5" />
+      {outerTicks.map((t, i) => (
+        <line key={`o${i}`}
+          x1={t.x1.toFixed(2)} y1={t.y1.toFixed(2)}
+          x2={t.x2.toFixed(2)} y2={t.y2.toFixed(2)}
+          stroke={color} strokeWidth={t.w} strokeLinecap="round" />
+      ))}
+      <circle cx={cx} cy={cy} r="20" fill="none" stroke={color} strokeWidth="2.5" />
+      {innerTicks.map((t, i) => (
+        <line key={`i${i}`}
+          x1={t.x1.toFixed(2)} y1={t.y1.toFixed(2)}
+          x2={t.x2.toFixed(2)} y2={t.y2.toFixed(2)}
+          stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+      ))}
+      <circle cx={cx} cy={cy} r="5" fill={color} />
+      <circle cx={cx} cy={cy} r="2.5" fill="none" stroke={color} strokeWidth="1" opacity="0.4" />
+    </svg>
+  )
+}
+
 // ── Spikey burst ──────────────────────────────────────────────────────────────
 function SpikeBurst({ width = 180, color = "#FFE033", text, textColor = C.red }) {
   const pts = Array.from({ length: 20 }, (_, i) => {
@@ -343,7 +392,7 @@ export default function Home() {
       }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: F.display, fontSize: 'clamp(26px,4vw,48px)', color: C.paper, letterSpacing: '0.05em', lineHeight: 1, textShadow: `4px 4px 0 ${C.red}`, whiteSpace: 'nowrap' }}>
-            📍 THE PROVENANCE DECODER RING
+            <><CipherDisk size={32} color={C.paper} />{" "}THE PROVENANCE DECODER RING</>
           </div>
           <div style={{ fontFamily: F.mono, fontSize: 11, color: '#C8B98A', marginTop: 7, lineHeight: 1.75 }}>
             YOU DON'T ADJUST TO THIS. &nbsp;·&nbsp; IT COMES TO YOU. &nbsp;·&nbsp; TALK HOWEVER YOU ACTUALLY TALK.<br />
@@ -455,7 +504,7 @@ export default function Home() {
           disabled={loading}
           style={{ fontFamily: F.display, fontSize: 18, letterSpacing: '0.1em', background: loading ? '#9A7F52' : C.red, color: C.cream, border: 'none', borderLeft: `3px solid ${C.ink}`, padding: '0 1.25rem', cursor: loading ? 'not-allowed' : 'pointer', flexShrink: 0 }}
         >
-          📍 DECODE
+          <CipherDisk size={18} color={C.cream} />{" "}DECODE
         </button>
       </div>
 
