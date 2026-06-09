@@ -57,10 +57,10 @@ class ChatResponse(BaseModel):
 @app.function(
     image=cuda_image,
     gpu="L4",
-    volumes={"/data": model_volume},
+    volumes={"data": model_volume},
     secrets=[
-        modal.Secret.from_name("google-sheets-auth"),
-        modal.Secret.from_name("decoder-ring-system-prompt"),
+        model.Secret.from_name("google-sheets-auth"),
+        model.Secret.from_name("System-prompt"),   # ← Fixed name
     ],
     min_containers=0,
     timeout=120,
@@ -72,9 +72,9 @@ def fastapi_app():
     from google.oauth2.service_account import Credentials
 
     # ── Load system prompt from secret ─────────────────────────────────────
-    System_Prompt = os.environ.get("System_Prompt", "")
-    if not System_Prompt:
-        print("WARNING: System_Prompt secret is empty or missing")
+systemprompt = os.environ.get("systemprompt", "")
+if not systemprompt:
+    print("WARNING: systemprompt secret is empty or missing")
 
     # ── Load model ─────────────────────────────────────────────────────────
     MODEL_PATH = "/data/Qwen2.5-7B-Instruct-Q4_K_M.gguf"
@@ -88,20 +88,29 @@ def fastapi_app():
     print("Model loaded.")
 
     # ── Google Sheets ──────────────────────────────────────────────────────
-    SHEET_ID = os.environ.get("SHEETS_ID", "")
-    GCP_CREDS = None
-    try:
+SHEET_ID = os.environ.get("SHEETS_ID", "")
+GCP_CREDS = None
+
+try:
+    import json
+    from google.oauth2.service_account import Credentials
+    
+    # Get the credentials JSON from the secret
+    gcp_json = os.environ.get("CREDENTIALS_JSON", "")
+    
+    if gcp_json:
+        creds_dict = json.loads(gcp_json)
         scopes = [
             "https://spreadsheets.google.com/feeds",
             "https://www.googleapis.com/auth/drive",
         ]
-        GCP_CREDS = Credentials.from_service_account_file(
-            "/data/credentials.json", scopes=scopes
-        )
+        GCP_CREDS = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         print("Sheets auth: OK")
-    except Exception as e:
-        print(f"Sheets auth skipped: {e}")
-
+    else:
+        print("Sheets auth skipped: CREDENTIALS_JSON not set")
+        
+except Exception as e:
+    print(f"Sheets auth error: {e}")
     # ── Evidence Grid Parser ───────────────────────────────────────────────
 
     def parse_evidence_grid(text: str) -> Optional[Dict[str, Any]]:
